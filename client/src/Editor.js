@@ -12,22 +12,6 @@ export default function Editor({ fileId, username }) {
   const [status, setStatus] = useState("Đang kết nối...");
   const [usersOnline, setUsersOnline] = useState([]);
 
-  // ✅ Hàm lưu file (đã được sử dụng)
-  const save = async () => {
-    if (!editorRef.current) return;
-    setStatus("Đang lưu...");
-    try {
-      await axios.post("http://localhost:5000/save", { 
-        fileId, 
-        content: editorRef.current.getValue() 
-      });
-      setStatus("Đã lưu ✅");
-      setTimeout(() => setStatus("Đã kết nối"), 1500);
-    } catch (err) { 
-      setStatus("Lỗi lưu file ❌"); 
-    }
-  };
-
   useEffect(() => {
     if (!ref.current) return;
 
@@ -107,9 +91,6 @@ export default function Editor({ fileId, username }) {
 
         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
           {/* ✅ NÚT SAVE */}
-          <button onClick={save} style={saveBtn}>
-            💾 Save
-          </button>
 
           {usersOnline.map((name, i) => (
             <span key={i} style={userTagEnhanced}>
@@ -168,14 +149,5 @@ const userTagEnhanced = {
   padding: "4px 10px",
   borderRadius: "6px",
   fontSize: "12px",
-  fontWeight: "bold"
-};
-
-const saveBtn = {
-  background: "#00ffff",
-  border: "none",
-  padding: "6px 12px",
-  borderRadius: "6px",
-  cursor: "pointer",
   fontWeight: "bold"
 };
