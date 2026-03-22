@@ -27,11 +27,6 @@ export default function Header({ fileId, save, share, toggleTheme, isDarkMode })
         >
           {isDarkMode ? "☀️" : "🌙"}
         </button>
-
-        {/* Nút Save đã có onClick={save} */}
-        <button className="btn-modern btn-action" onClick={save}>
-           💾 Save
-        </button>
         
         {/* Nút Share - PHẢI THÊM onClick={share} VÀO ĐÂY */}
         <button className="btn-modern btn-action" onClick={share}>
