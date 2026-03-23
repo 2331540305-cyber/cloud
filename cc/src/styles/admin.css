@@ -1,0 +1,218 @@
+.admin-container {
+  max-width: 1200px;
+  margin: 20px auto;
+  padding: 20px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.admin-header {
+  border-bottom: 2px solid #e0e0e0;
+  padding-bottom: 15px;
+  margin-bottom: 20px;
+}
+
+.admin-header h2 {
+  color: #333;
+}
+
+.admin-content {
+  color: #666;
+}
+
+.admin-setup-container {
+  max-width: 900px;
+  margin: 20px auto;
+  padding: 20px;
+  background: #f5f7fb;
+  min-height: 100vh;
+}
+
+.setup-header {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.setup-header h1 {
+  color: #333;
+  font-size: 28px;
+}
+
+.setup-content {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin-bottom: 30px;
+}
+
+.user-info-card,
+.user-data-card,
+.error-card {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.user-info-card h2,
+.user-data-card h2,
+.error-card h2 {
+  margin-top: 0;
+  margin-bottom: 15px;
+  color: #333;
+  font-size: 18px;
+}
+
+.info-row {
+  margin-bottom: 15px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #eee;
+}
+
+.info-row:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.info-row label {
+  display: block;
+  font-weight: 600;
+  color: #555;
+  margin-bottom: 5px;
+  font-size: 14px;
+}
+
+.info-row span {
+  color: #333;
+  word-break: break-all;
+}
+
+.profile-photo {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.role-badge {
+  display: inline-block;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.role-admin {
+  background-color: #e3f2fd;
+  color: #1976d2;
+}
+
+.role-member {
+  background-color: #f3e5f5;
+  color: #7b1fa2;
+}
+
+.permissions-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.permission-tag {
+  display: inline-block;
+  background-color: #e8f5e9;
+  color: #2e7d32;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+}
+
+.action-section {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 2px solid #e0e0e0;
+}
+
+.make-admin-btn {
+  width: 100%;
+  padding: 12px;
+  background: #ff9800;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 600;
+  transition: background-color 0.3s;
+}
+
+.make-admin-btn:hover:not(:disabled) {
+  background: #f57c00;
+}
+
+.make-admin-btn:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+.error-card {
+  background: #ffebee;
+  border-left: 4px solid #c62828;
+}
+
+.error-card h2 {
+  color: #c62828;
+}
+
+.error-card p {
+  color: #b71c1c;
+  margin: 8px 0;
+}
+
+.setup-footer {
+  text-align: center;
+}
+
+.logout-btn {
+  padding: 10px 30px;
+  background: #e74c3c;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.logout-btn:hover {
+  background: #c0392b;
+}
+
+.instructions-section {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.instructions-section h3 {
+  color: #333;
+  margin-top: 0;
+}
+
+.instructions-section ol {
+  color: #666;
+  padding-left: 20px;
+}
+
+.instructions-section li {
+  margin-bottom: 10px;
+}
+
+@media (max-width: 768px) {
+  .setup-content {
+    grid-template-columns: 1fr;
+  }
+}
