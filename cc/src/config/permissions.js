@@ -1,101 +1,36 @@
-import { doc, getDoc, updateDoc, arrayUnion, arrayRemove } from "firebase/firestore";
-import { db } from "./firebase";
+import { useState, useEffect } from 'react';
+import { doc, onSnapshot } from 'firebase/firestore';
+import { auth, db } from '../config/firebase';
 
-export const PERMISSIONS = {
-  VIEW_TASKS: "view_tasks",
-  EDIT_TASKS: "edit_tasks",
-  DELETE_TASKS: "delete_tasks",
-  VIEW_TEAM: "view_team",
-  EDIT_TEAM: "edit_team",
-  VIEW_UPLOADS: "view_uploads",
-  UPLOAD_FILES: "upload_files",
-  DELETE_FILES: "delete_files"
-};
+export function usePermissions() {
+  const [permissions, setPermissions] = useState([]);
+  const [role, setRole] = useState('member');
+  const [loading, setLoading] = useState(true);
 
-export async function hasPermission(userId, permissionName) {
-  try {
-    const userRef = doc(db, "users", userId);
-    const userSnap = await getDoc(userRef);
-
-    if (userSnap.exists()) {
-      const role = userSnap.data().role;
-      const permissions = userSnap.data().permissions || [];
-
-      if (role === "admin") return true;
-      return permissions.includes(permissionName);
-    }
-    return false;
-  } catch (error) {
-    console.error("Error checking permission:", error);
-    return false;
-  }
-}
-
-export async function getUserRole(userId) {
-  try {
-    const userRef = doc(db, "users", userId);
-    const userSnap = await getDoc(userRef);
-
-    if (userSnap.exists()) {
-      return userSnap.data().role || "member";
-    }
-    return "member";
-  } catch (error) {
-    console.error("Error getting user role:", error);
-    return null;
-  }
-}
-
-export async function getUserPermissions(userId) {
-  try {
-    const userRef = doc(db, "users", userId);
-    const userSnap = await getDoc(userRef);
-
-    if (userSnap.exists()) {
-      return userSnap.data().permissions || [];
-    }
-    return [];
-  } catch (error) {
-    console.error("Error getting user permissions:", error);
-    return [];
-  }
-}
-
-export async function addPermission(userId, permissionName) {
-  try {
-    const userRef = doc(db, "users", userId);
-    await updateDoc(userRef, {
-      permissions: arrayUnion(permissionName)
+  useEffect(() => {
+    const unsubscribeAuth = auth.onAuthStateChanged((user) => {
+      if (user) {
+        // ⚡ Lắng nghe REALTIME thay đổi từ Firestore
+        const unsubDoc = onSnapshot(doc(db, "users", user.uid), (snapshot) => {
+          if (snapshot.exists()) {
+            const data = snapshot.val?.() || snapshot.data(); // Hỗ trợ cả RTDB/Firestore tùy cấu hình
+            setPermissions(data.permissions || []);
+            setRole(data.role || 'member');
+          }
+          setLoading(false);
+        });
+        return () => unsubDoc();
+      } else {
+        setPermissions([]);
+        setRole('member');
+        setLoading(false);
+      }
     });
-    return true;
-  } catch (error) {
-    console.error("Error adding permission:", error);
-    return false;
-  }
-}
 
-export async function removePermission(userId, permissionName) {
-  try {
-    const userRef = doc(db, "users", userId);
-    await updateDoc(userRef, {
-      permissions: arrayRemove(permissionName)
-    });
-    return true;
-  } catch (error) {
-    console.error("Error removing permission:", error);
-    return false;
-  }
-}
+    return () => unsubscribeAuth();
+  }, []);
 
-export async function updateUserRole(userId, newRole) {
-  try {
-    const userRef = doc(db, "users", userId);
-    await updateDoc(userRef, {
-      role: newRole
-    });
-    return true;
-  } catch (error) {
-    console.error("Error updating user role:", error);
-    return false;
-  }
+  const hasPermission = (perm) => role === 'admin' || permissions.includes(perm);
+
+  return { permissions, role, hasPermission, loading };
 }

@@ -1,176 +1,185 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { onAuthStateChanged, signOut } from 'firebase/auth';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { onAuthStateChanged } from 'firebase/auth';
+import { collection, doc, getDoc, updateDoc, onSnapshot } from 'firebase/firestore';
 import { auth, db } from '../config/firebase';
+import { FiShield, FiUser, FiCheckCircle } from 'react-icons/fi';
 import '../styles/admin.css';
 
 export default function AdminSetup() {
-  const [user, setUser] = useState(null);
-  const [userData, setUserData] = useState(null);
+  const [currentUser, setCurrentUser] = useState(null);
+  const [allUsers, setAllUsers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [updating, setUpdating] = useState(false);
+  const [selectedUserId, setSelectedUserId] = useState(null); // Lưu ID thay vì Object để đồng bộ tốt hơn
   const navigate = useNavigate();
 
+  // Danh sách các quyền hệ thống
+  const availablePermissions = [
+    { id: 'view_tasks', label: 'Xem công việc' },
+    { id: 'edit_tasks', label: 'Sửa công việc' },
+    { id: 'delete_tasks', label: 'Xóa công việc' },
+    { id: 'view_team', label: 'Xem nhóm' },
+    { id: 'edit_team', label: 'Quản lý nhóm' },
+    { id: 'view_uploads', label: 'Xem file' },
+    { id: 'upload_files', label: 'Tải lên file' },
+    { id: 'delete_files', label: 'Xóa file' }
+  ];
+
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-      if (!currentUser) {
+    const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
+      if (!user) {
         navigate('/login');
         return;
       }
+      setCurrentUser(user);
 
-      setUser(currentUser);
-
-      try {
-        const userRef = doc(db, 'users', currentUser.uid);
-        const userSnap = await getDoc(userRef);
-
-        if (userSnap.exists()) {
-          setUserData(userSnap.data());
-        } else {
-          setUserData(null);
-        }
-      } catch (error) {
-        console.error('Error fetching user data:', error);
-      } finally {
-        setLoading(false);
+      // Kiểm tra quyền Admin
+      const adminRef = doc(db, 'users', user.uid);
+      const adminSnap = await getDoc(adminRef);
+      if (adminSnap.exists() && adminSnap.data()?.role !== 'admin') {
+        alert("Bạn không có quyền truy cập trang này!");
+        navigate('/dashboard');
       }
     });
 
-    return () => unsubscribe();
+    // ⚡ Lắng nghe danh sách tất cả người dùng REALTIME
+    const unsubscribeUsers = onSnapshot(collection(db, 'users'), (snapshot) => {
+      const usersList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setAllUsers(usersList);
+      setLoading(false);
+    });
+
+    return () => {
+      unsubscribeAuth();
+      unsubscribeUsers();
+    };
   }, [navigate]);
 
-  const handleMakeAdmin = async () => {
-    if (!confirm('Make this account admin?')) return;
+  // Tìm thông tin user đang được chọn từ danh sách allUsers (để lấy data mới nhất)
+  const selectedUser = allUsers.find(u => u.id === selectedUserId);
 
-    setUpdating(true);
+  // Hàm cập nhật quyền hoặc Role
+  const handleUpdateUser = async (userId, newData) => {
     try {
-      const userRef = doc(db, 'users', user.uid);
-      await updateDoc(userRef, {
-        role: 'admin',
-        permissions: [
-          'view_tasks',
-          'edit_tasks',
-          'delete_tasks',
-          'view_team',
-          'edit_team',
-          'view_uploads',
-          'upload_files',
-          'delete_files'
-        ]
-      });
-
-      alert('Account updated to Admin!');
-      
-      // Reload
-      const userSnap = await getDoc(userRef);
-      setUserData(userSnap.data());
+      const userRef = doc(db, 'users', userId);
+      await updateDoc(userRef, newData);
+      // Không cần alert ở đây để trải nghiệm mượt mà hơn (Realtime sẽ tự nhảy checkbox)
     } catch (error) {
-      alert('Error: ' + error.message);
-    } finally {
-      setUpdating(false);
+      alert('Lỗi cập nhật: ' + error.message);
     }
   };
 
-  const handleLogout = async () => {
-    try {
-      await signOut(auth);
-      navigate('/login');
-    } catch (error) {
-      alert('Error logging out: ' + error.message);
-    }
+  // Hàm xử lý tick/untick quyền
+  const togglePermission = (user, permId) => {
+    const currentPerms = user.permissions || [];
+    const newPerms = currentPerms.includes(permId)
+      ? currentPerms.filter(p => p !== permId)
+      : [...currentPerms, permId];
+    
+    handleUpdateUser(user.id, { permissions: newPerms });
   };
 
-  if (loading) return <div className="loading">Loading...</div>;
+  if (loading) return <div className="loading">Đang tải danh sách thành viên...</div>;
 
   return (
     <div className="admin-setup-container">
       <div className="setup-header">
-        <h1>🔧 Admin Setup</h1>
+        <h1><FiShield /> Quản trị hệ thống</h1>
+        <p>Cấp quyền và quản lý vai trò thành viên</p>
       </div>
 
-      <div className="setup-content">
-        <div className="user-info-card">
-          <h2>Current User Info</h2>
-          <div className="info-row">
-            <label>Email:</label>
-            <span>{user?.email}</span>
-          </div>
-          <div className="info-row">
-            <label>UID:</label>
-            <span>{user?.uid}</span>
-          </div>
-          {user?.photoURL && (
-            <div className="info-row">
-              <label>Photo:</label>
-              <img src={user?.photoURL} alt="Profile" className="profile-photo" />
-            </div>
-          )}
-          <div className="info-row">
-            <label>Sign-in Provider:</label>
-            <span>{user?.providerData[0]?.providerId || 'Email/Password'}</span>
+      <div className="admin-grid">
+        {/* CỘT TRÁI: DANH SÁCH THÀNH VIÊN */}
+        <div className="user-list-section">
+          <h2>Danh sách thành viên ({allUsers.length})</h2>
+          <div className="users-table-wrapper">
+            <table className="users-table">
+              <thead>
+                <tr>
+                  <th>Thành viên</th>
+                  <th>Vai trò</th>
+                  <th>Thao tác</th>
+                </tr>
+              </thead>
+              <tbody>
+                {allUsers.map(u => (
+                  <tr key={u.id} className={selectedUserId === u.id ? 'active' : ''}>
+                    <td onClick={() => setSelectedUserId(u.id)}>
+                      <div className="user-cell">
+                        <img src={u.photoURL || 'https://ui-avatars.com/api/?name=' + u.displayName} alt="avatar" />
+                        <div>
+                          <p className="name">{u.displayName || 'Người dùng'}</p>
+                          <p className="email">{u.email}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td>
+                      <span className={`role-badge ${u.role}`}>{u.role?.toUpperCase()}</span>
+                    </td>
+                    <td>
+                      <button 
+                        className="btn-edit" 
+                        onClick={() => setSelectedUserId(u.id)}
+                      >
+                        Sửa quyền
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
 
-        {userData ? (
-          <div className="user-data-card">
-            <h2>Firestore Data</h2>
-            <div className="info-row">
-              <label>Role:</label>
-              <span className={`role-badge role-${userData.role}`}>
-                {userData.role || 'Not set'}
-              </span>
-            </div>
-            <div className="info-row">
-              <label>Permissions:</label>
-              <div className="permissions-list">
-                {userData.permissions && userData.permissions.length > 0 ? (
-                  userData.permissions.map(perm => (
-                    <span key={perm} className="permission-tag">{perm}</span>
-                  ))
-                ) : (
-                  <span>No permissions</span>
-                )}
+        {/* CỘT PHẢI: CHI TIẾT & CHỈNH SỬA QUYỀN */}
+        <div className="permissions-edit-section">
+          {selectedUser ? (
+            <div className="edit-card">
+              <div className="edit-card-header">
+                <img src={selectedUser.photoURL || 'https://ui-avatars.com/api/?name=' + selectedUser.displayName} alt="avatar" />
+                <h2>{selectedUser.displayName}</h2>
+              </div>
+              
+              <div className="role-toggle">
+                <label>Vai trò chính:</label>
+                <select 
+                  value={selectedUser.role || 'user'} 
+                  onChange={(e) => handleUpdateUser(selectedUser.id, { role: e.target.value })}
+                >
+                  <option value="user">User (Người dùng)</option>
+                  <option value="admin">Admin (Quản trị viên)</option>
+                </select>
+              </div>
+
+              <hr />
+
+              <h3>Danh sách quyền chi tiết</h3>
+              <div className="permissions-grid">
+                {availablePermissions.map(perm => (
+                  <div key={perm.id} className="perm-item">
+                    <input 
+                      type="checkbox" 
+                      id={perm.id}
+                      checked={selectedUser.permissions?.includes(perm.id) || false}
+                      onChange={() => togglePermission(selectedUser, perm.id)}
+                    />
+                    <label htmlFor={perm.id}>{perm.label}</label>
+                  </div>
+                ))}
+              </div>
+              
+              <div className="note-box">
+                <FiCheckCircle />
+                <span>Thay đổi sẽ có hiệu lực ngay lập tức cho người dùng này.</span>
               </div>
             </div>
-            <div className="info-row">
-              <label>Created At:</label>
-              <span>
-                {userData.createdAt 
-                  ? new Date(userData.createdAt.toDate?.() || userData.createdAt).toLocaleString()
-                  : 'N/A'}
-              </span>
+          ) : (
+            <div className="empty-state">
+              <FiUser size={64} />
+              <p>Chọn một thành viên bên trái để chỉnh sửa quyền hạn</p>
             </div>
-
-            {userData.role !== 'admin' && (
-              <div className="action-section">
-                <button className="make-admin-btn" onClick={handleMakeAdmin} disabled={updating}>
-                  {updating ? 'Updating...' : '👑 Make This Account Admin'}
-                </button>
-              </div>
-            )}
-          </div>
-        ) : (
-          <div className="error-card">
-            <h2>⚠️ No Firestore Data Found</h2>
-            <p>Your user account doesn't have a record in Firestore yet.</p>
-            <p>Try logging out and logging back in, or contact an admin.</p>
-          </div>
-        )}
-      </div>
-
-      <div className="setup-footer">
-        <button className="logout-btn" onClick={handleLogout}>Logout</button>
-      </div>
-
-      <div className="instructions-section">
-        <h3>📝 How to Setup Admin:</h3>
-        <ol>
-          <li>Make sure you're logged in with your email</li>
-          <li>If you see "No Firestore Data", logout and login again</li>
-          <li>Once data appears, click "Make This Account Admin"</li>
-          <li>Refresh and go to Members page to manage other users</li>
-        </ol>
+          )}
+        </div>
       </div>
     </div>
   );
